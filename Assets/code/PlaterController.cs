@@ -33,17 +33,16 @@ public class PlaterController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        // 땅에 닿아 있는지 확인
+
         isGrounded = controller.isGrounded;
         if (isGrounded && velocity.y < 0)
         {
-            velocity.y = -2f; // 지면에 붙이
+            velocity.y = -2f; 
         }
 
         float x = Input.GetAxis("Horizontal");
         float z = Input.GetAxis("Vertical");
 
-        // 카메라 기준 방향 계산
         Vector3 camForward = virtualCam.transform.forward;
         camForward.y = 0;
         camForward.Normalize();
@@ -52,20 +51,19 @@ public class PlaterController : MonoBehaviour
         camRight.y = 0;
         camRight.Normalize();
 
-        Vector3 move = (camForward * z + camRight * x).normalized; // 이동 방향 - 카메라 forward/right 기반
+        Vector3 move = (camForward * z + camRight * x).normalized;
         controller.Move(move * speed * Time.deltaTime);
 
-        float cameraYaw = pov.m_HorizontalAxis.Value; // 마우스 좌우 회전값
+        float cameraYaw = pov.m_HorizontalAxis.Value;
         Quaternion targetRot = Quaternion.Euler(0f, cameraYaw, 0f);
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
 
-        // 점프
+
         if (isGrounded && Input.GetKeyDown(KeyCode.Space))
         {
             velocity.y = jumpPower;
         }
 
-        // 중력 적용
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);
     }

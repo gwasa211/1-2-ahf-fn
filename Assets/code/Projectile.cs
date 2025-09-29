@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class Projectile : MonoBehaviour
@@ -8,14 +7,14 @@ public class Projectile : MonoBehaviour
     public float speed = 20.0f;
     public float lifdTime = 2f;
 
+   
+    public int damage = 1;
 
-    // Start is called before the first frame update
     void Start()
     {
         Destroy(gameObject, lifdTime);
     }
 
-    // Update is called once per frame
     void Update()
     {
         transform.Translate(Vector3.forward * speed * Time.deltaTime);
@@ -25,7 +24,11 @@ public class Projectile : MonoBehaviour
     {
         if (other.CompareTag("Enemy"))
         {
-            Destroy(other.gameObject);
+            Enemy enemy = other.GetComponent<Enemy>();
+            if (enemy != null)
+            {
+                enemy.TakeDamage(damage); 
+            }
             Destroy(gameObject);
         }
     }
