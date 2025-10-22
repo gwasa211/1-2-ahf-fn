@@ -71,7 +71,7 @@ public class PlaterShooting : MonoBehaviour
         }
         if (selectedPrefab == null) return;
         GameObject projObject = Instantiate(selectedPrefab, firePoint.position, Quaternion.LookRotation(direction));
-        Projectile proj = projObject.GetComponent<Projectile>();
+        PlayerProjectile proj = projObject.GetComponent<PlayerProjectile>();
         if (proj != null)
         {
             proj.speed = currentSpeed;

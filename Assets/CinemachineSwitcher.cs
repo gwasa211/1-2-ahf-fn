@@ -3,35 +3,41 @@ using Cinemachine;
 
 public class CinemachineSwitcher : MonoBehaviour
 {
-    // 기본 TPS 카메라
-    public CinemachineVirtualCamera virtualCam;
-    // 자유 회전 TPS 카메라
-    public CinemachineFreeLook freelookCam;
+    // 1인칭 전투용 카메라
+    public CinemachineVirtualCamera firstPersonCam;
 
-    public bool usingFreelook = false;
+    // [수정됨] 3인칭 FreeLook 카메라
+    public CinemachineFreeLook thirdPersonCam;
+
+    // 이 변수를 PlayerController가 읽어갑니다.
+    public bool isThirdPersonView = false;
 
     void Start()
     {
-        // 시작은 Virtual Camera 활성화
-        virtualCam.Priority = 10;
-        freelookCam.Priority = 0;
+        // 시작은 1인칭
+        firstPersonCam.Priority = 20;
+        thirdPersonCam.Priority = 0;
+        isThirdPersonView = false;
     }
 
     void Update()
     {
-        if (Input.GetMouseButtonDown(1)) // 우클릭
+        // V 키로 시점 전환
+        if (Input.GetKeyDown(KeyCode.V))
         {
-            usingFreelook = !usingFreelook;
+            isThirdPersonView = !isThirdPersonView;
 
-            if (usingFreelook)
+            if (isThirdPersonView)
             {
-                freelookCam.Priority = 20; // Freelook 활성화
-                virtualCam.Priority = 0;
+                // 3인칭 켜기
+                thirdPersonCam.Priority = 20;
+                firstPersonCam.Priority = 0;
             }
             else
             {
-                virtualCam.Priority = 20; // Virtual Camera 활성화
-                freelookCam.Priority = 0;
+                // 1인칭 켜기
+                firstPersonCam.Priority = 20;
+                thirdPersonCam.Priority = 0;
             }
         }
     }
