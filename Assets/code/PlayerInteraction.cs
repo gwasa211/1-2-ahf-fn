@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
-using UnityEngine.SceneManagement; // [1. 씬 관리자 추가]
+using UnityEngine.SceneManagement;
+// using UnityEngine.UI; // [삭제] UI 변수 안 씀
 
 public class PlayerInteraction : MonoBehaviour
 {
@@ -13,53 +14,41 @@ public class PlayerInteraction : MonoBehaviour
     public Camera mainCamera;
     public LayerMask buildableLayer;
 
+    // --- [새 기능] 빌드 모드 ---
+    // public GameObject crosshairUI; // [삭제]
+    private bool isBuildMode = false;
+    // --- [새 기능 끝] ---
+
     private List<GameObject> currentPreviews = new List<GameObject>();
     private int currentBuildIndex = 0;
 
     private Vector3 snappedPosition;
     private bool canBuild = false;
 
-    // --- [2. Start() 대신 OnEnable() 사용] ---
-    // OnEnable은 스크립트가 활성화될 때 + (DontDestroyOnLoad라면) 씬이 로드될 때마다 호출됩니다.
+    // (OnEnable, OnDisable, OnSceneLoaded 함수는 변경 없음)
     void OnEnable()
     {
-        // 씬 로드 이벤트를 구독(subscribe)
         SceneManager.sceneLoaded += OnSceneLoaded;
-
-        // 씬이 처음 켜졌을 때도 일단 한 번 실행
         SetupPreviews();
     }
-
-    // --- [3. OnDisable() 추가] ---
-    // 스크립트가 비활성화되거나 파괴될 때
     void OnDisable()
     {
-        // 구독을 해제(unsubscribe) (메모리 누수 방지)
         SceneManager.sceneLoaded -= OnSceneLoaded;
     }
-
-    // --- [4. 씬 로드 완료 시 실행될 함수] ---
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        Debug.Log(scene.name + " 씬 로드 완료. 미리보기를 재생성합니다.");
-        // 씬이 새로 로드되었으니, 미리보기 블록들을 다시 만듭니다.
         SetupPreviews();
     }
 
-    // --- [5. Start()의 내용을 이 함수로 이동] ---
     void SetupPreviews()
     {
-        // [중요] 기존에 있던 (아마도 유령이 된) 미리보기 리스트 청소
+        // (기존 미리보기 청소/생성 로직은 동일)
         foreach (GameObject oldPreview in currentPreviews)
         {
-            if (oldPreview != null)
-            {
-                Destroy(oldPreview);
-            }
+            if (oldPreview != null) Destroy(oldPreview);
         }
-        currentPreviews.Clear(); // 리스트 비우기
+        currentPreviews.Clear();
 
-        // [중요] 프리팹에서 새로 생성
         foreach (GameObject prefab in previewBlockPrefabs)
         {
             if (prefab != null)
@@ -76,12 +65,43 @@ public class PlayerInteraction : MonoBehaviour
             this.enabled = false;
         }
 
-        // 0번 기물을 기본으로 선택
+        // [삭제] 십자선 UI 관련 코드 모두 삭제
+        // if (crosshairUI == null) { ... }
+
+        isBuildMode = false;
+        // if (crosshairUI != null) crosshairUI.SetActive(false); // [삭제]
+        HideAllPreviews();
+
         SelectBuildObject(0);
     }
 
     void Update()
     {
+        // --- B키로 빌드 모드 토글 ---
+        if (Input.GetKeyDown(KeyCode.B))
+        {
+            isBuildMode = !isBuildMode;
+
+            if (isBuildMode)
+            {
+                Debug.Log("빌드 모드 ON");
+                // if (crosshairUI != null) crosshairUI.SetActive(true); // [삭제]
+            }
+            else
+            {
+                Debug.Log("빌드 모드 OFF");
+                // if (crosshairUI != null) crosshairUI.SetActive(false); // [삭제]
+                HideAllPreviews();
+            }
+        }
+        // --- [수정 끝] ---
+
+
+        if (!isBuildMode)
+        {
+            return;
+        }
+
         // (기물 선택 로직은 동일)
         if (Input.GetKeyDown(KeyCode.Alpha1)) SelectBuildObject(0);
         else if (Input.GetKeyDown(KeyCode.Alpha2)) SelectBuildObject(1);
@@ -90,6 +110,8 @@ public class PlayerInteraction : MonoBehaviour
         HandleBuildPreview();
         HandleBuildActions();
     }
+
+    // (이하 SelectBuildObject, HideAllPreviews, HandleBuildPreview, HandleBuildActions 함수는 변경 없음)
 
     void SelectBuildObject(int index)
     {
@@ -105,7 +127,6 @@ public class PlayerInteraction : MonoBehaviour
     {
         foreach (GameObject preview in currentPreviews)
         {
-            // [수정] 유령 객체 조작 방지
             if (preview != null)
             {
                 preview.SetActive(false);
@@ -116,37 +137,25 @@ public class PlayerInteraction : MonoBehaviour
     void HandleBuildPreview()
     {
         if (mainCamera == null) return;
-
-        // [수정] 리스트에 기물이 없으면(SetupPreviews 전) 중단
         if (currentPreviews.Count == 0 || currentPreviews.Count <= currentBuildIndex) return;
 
         GameObject currentPreview = currentPreviews[currentBuildIndex];
-
-        // --- [오류 발생 지점 FIX] ---
-        // currentPreview가 (어떤 이유로든) 파괴되었다면, 함수를 즉시 중단
-        if (currentPreview == null)
-        {
-            Debug.LogWarning("현재 미리보기 오브젝트가 Missing (null)입니다. SetupPreviews를 기다립니다.");
-            return;
-        }
-        // --- [FIX 끝] ---
+        if (currentPreview == null) return;
 
         Ray ray = mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
         RaycastHit hit;
 
         if (Physics.Raycast(ray, out hit, buildDistance, buildableLayer))
         {
-            // (그리드 스냅 로직은 동일)
             snappedPosition = new Vector3(
                 Mathf.Round(hit.point.x / MapGenerator.Instance.tileSize) * MapGenerator.Instance.tileSize,
-                0.01f, // (Y=0.01f로 고정했던 것 유지)
+                0.01f,
                 Mathf.Round(hit.point.z / MapGenerator.Instance.tileSize) * MapGenerator.Instance.tileSize
             );
 
             currentPreview.transform.position = snappedPosition;
             currentPreview.SetActive(true);
 
-            // (설치 가능 여부 체크 로직은 동일)
             MapGenerator.TileState state = MapGenerator.Instance.GetTileStateAtWorld(snappedPosition);
             bool isOccupied = Physics.CheckBox(
                 snappedPosition + new Vector3(0, MapGenerator.Instance.tileSize / 2f, 0),
