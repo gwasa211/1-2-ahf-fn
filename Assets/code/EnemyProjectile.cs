@@ -29,7 +29,7 @@ public class EnemyProjectile : MonoBehaviour
     {
         if(other.CompareTag("Player"))
         {
-            PlaterController pc = other.GetComponent<PlaterController>();
+            PlayerController pc = other.GetComponent<PlayerController>();
             if (pc != null ) pc.TakeDamage(damage);
 
             Destroy(gameObject);

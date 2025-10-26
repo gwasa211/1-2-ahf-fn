@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using UnityEngine.UI;
 
-// [클래스 1] 기물 정보 (파일 상단에 두세요)
+// [클래스 1] 기물 정보 (변경 없음)
 [System.Serializable]
 public class BuildItem
 {
@@ -19,9 +19,9 @@ public class PlayerInteraction : MonoBehaviour
     public PlayerMode currentMode = PlayerMode.Combat;
 
     [Header("Build Settings")]
-    public List<BuildItem> buildItems; // (인스펙터에서 4개 할당)
-    public UIManager buildUIManager;   // (인스펙터에서 UI매니저 할당)
-    public LayerMask groundLayerMask;  // (인스펙터에서 'Ground' 레이어 할당)
+    public List<BuildItem> buildItems;
+    public UIManager buildUIManager;
+    public LayerMask groundLayerMask;
 
     [Header("Grid & Distance")]
     public float gridSize = 0.11f;
@@ -48,8 +48,8 @@ public class PlayerInteraction : MonoBehaviour
 
     void Update()
     {
-        // 1. 휠 클릭으로 전투/빌드 모드 직접 전환
-        if (Input.GetMouseButtonDown(2)) // 2 = 마우스 휠 버튼 클릭
+        // [수정됨] 휠 클릭 -> V 키
+        if (Input.GetKeyDown(KeyCode.V))
         {
             if (currentMode == PlayerMode.Combat)
             {
@@ -87,7 +87,8 @@ public class PlayerInteraction : MonoBehaviour
         }
     }
 
-    // 1, 2, 3, 4번 키로 기물 4개 선택
+    // (이하 함수들은 변경 없음)
+
     void HandleItemSelection()
     {
         if (Input.GetKeyDown(KeyCode.Alpha1)) SelectItem(0);
@@ -144,6 +145,6 @@ public class PlayerInteraction : MonoBehaviour
 
     void HandleCombatMode()
     {
-        // (전투 로직. 예: 마우스 좌클릭 시 총알 발사)
+        // (전투 로직)
     }
 }

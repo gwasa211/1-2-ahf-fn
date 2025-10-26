@@ -6,8 +6,8 @@ public class CinemachineSwitcher : MonoBehaviour
     // 1인칭 전투용 카메라
     public CinemachineVirtualCamera firstPersonCam;
 
-    // [수정됨] 3인칭 FreeLook 카메라
-    public CinemachineFreeLook thirdPersonCam;
+    // 3인칭 일반용 카메라
+    public CinemachineVirtualCamera thirdPersonCam;
 
     // 이 변수를 PlayerController가 읽어갑니다.
     public bool isThirdPersonView = false;
@@ -22,8 +22,8 @@ public class CinemachineSwitcher : MonoBehaviour
 
     void Update()
     {
-        // V 키로 시점 전환
-        if (Input.GetKeyDown(KeyCode.V))
+        // [수정됨] V 키 -> 마우스 휠 버튼(2)
+        if (Input.GetMouseButtonDown(2)) // 2 = 마우스 휠 버튼 클릭
         {
             isThirdPersonView = !isThirdPersonView;
 
