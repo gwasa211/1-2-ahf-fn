@@ -9,10 +9,9 @@ public class GameManager : MonoBehaviour
     public int totalLives = 20;
     public int currentRound = 1;
 
-    // --- [추가] ---
-    [Header("Links")]
-    public EnemySpawner enemySpawner; // 1. 스포너 연결
-                                      // --- [추가 끝] ---
+    // --- [삭제] ---
+    // (EnemySpawner 연결 변수 삭제)
+    // --- [삭제 끝] ---
 
     void Awake()
     {
@@ -33,17 +32,12 @@ public class GameManager : MonoBehaviour
         Debug.Log("--- 게임 매니저 시작 ---");
         Debug.Log("현재 목숨: " + totalLives + " | 현재 라운드: " + currentRound);
 
-        // --- [추가] ---
-        // 2. 스포너가 연결되었는지 확인
-        if (enemySpawner == null)
-        {
-            Debug.LogError("GameManager: 'Enemy Spawner'가 연결되지 않았습니다!");
-        }
-        // --- [추가 끝] ---
+        // [삭제] 스포너 연결 확인 코드 삭제
     }
 
     void Update()
     {
+        // N키로 다음 라운드 테스트
         if (Input.GetKeyDown(KeyCode.N))
         {
             GoToNextRound();
@@ -52,17 +46,10 @@ public class GameManager : MonoBehaviour
 
     public void MonsterReachedGoal(Enemy monster)
     {
-        if (monster != null)
-        {
-            Destroy(monster.gameObject);
-        }
+        if (monster != null) Destroy(monster.gameObject);
         totalLives--;
         Debug.Log("몬스터가 골에 도달! 남은 목숨: " + totalLives);
-
-        if (totalLives <= 0)
-        {
-            GameOver();
-        }
+        if (totalLives <= 0) GameOver();
     }
 
     public void GoToNextRound()
@@ -75,13 +62,17 @@ public class GameManager : MonoBehaviour
             MapGenerator.Instance.GoToNextRound();
         }
 
-        // --- [추가] ---
-        // 3. 스포너에게 스폰 시작 명령!
-        if (enemySpawner != null)
+        // --- [수정] ---
+        // 3. 인스펙터 연결 대신, 싱글톤 인스턴스를 바로 호출!
+        if (EnemySpawner.Instance != null)
         {
-            enemySpawner.StartSpawning(currentRound);
+            EnemySpawner.Instance.StartSpawning(currentRound);
         }
-        // --- [추가 끝] ---
+        else
+        {
+            Debug.LogError("GameManager: 씬에 'EnemySpawner' 오브젝트가 없습니다!");
+        }
+        // --- [수정 끝] ---
     }
 
     void GameOver()
