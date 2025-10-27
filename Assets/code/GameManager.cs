@@ -1,7 +1,8 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using TMPro; // TextMeshPro UI
-using System.Collections; // [새로 추가] 코루틴(카운트다운)을 위해
+using TMPro;
+using System.Collections;
+using UnityEngine.UI; // 조준선 (Image)
 
 public class GameManager : MonoBehaviour
 {
@@ -9,15 +10,24 @@ public class GameManager : MonoBehaviour
 
     [Header("Game Status")]
     public int totalLives = 20;
-    public int currentRound = 0; // 0에서 시작
-    private bool isGameStarted = false; // [새로 추가] 게임 시작 상태
+    public int currentRound = 0;
+
+    [HideInInspector]
+    public bool isGameStarted = false;
+    private bool isCountingDown = false;
+
+    // --- [수정] 이 변수가 빠져있었습니다! (클래스 레벨에 추가) ---
+    private bool waitingForNextRoundInput = false;
+    // --- [수정 끝] ---
 
     [Header("UI (Links)")]
     public TextMeshProUGUI roundText;
     public TextMeshProUGUI livesText;
-    // [수정] '시작 버튼' 대신 '텍스트'로 변경
-    public TextMeshProUGUI startPromptText; // "Press Space..."
-    public TextMeshProUGUI countdownText;   // "3, 2, 1..."
+    public TextMeshProUGUI startPromptText;
+    public TextMeshProUGUI countdownText;
+    public GameObject aimImageObject;
+    public TextMeshProUGUI roundSuccessText;
+    public TextMeshProUGUI nextRoundPromptText;
 
     void Awake()
     {
@@ -25,6 +35,7 @@ public class GameManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            Debug.Log("[DEBUG] GameManager: Awake() 실행. Instance 설정 완료.");
         }
         else
         {
@@ -35,72 +46,74 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        Debug.Log("--- 게임 매니저 시작 (현재 0 라운드 준비 중) ---");
+        Debug.Log("[DEBUG] GameManager: Start() 함수 *시작*.");
 
-        if (roundText == null || livesText == null || startPromptText == null || countdownText == null)
+        if (roundText == null || livesText == null || startPromptText == null || countdownText == null || aimImageObject == null || roundSuccessText == null || nextRoundPromptText == null)
         {
-            Debug.LogError("GameManager: UI 텍스트 (Round, Lives, Start, Countdown)가 모두 연결되지 않았습니다!");
+            Debug.LogError("GameManager: UI 링크 중 하나가 비어있습니다!");
         }
 
-        isGameStarted = false; // 게임 시작 전
+        isGameStarted = false;
+        isCountingDown = false;
+        waitingForNextRoundInput = false; // (변수 초기화)
+
         UpdateUI();
 
-        // [수정] 시작 텍스트는 켜고, 카운트다운 텍스트는 끔
-        if (startPromptText != null) startPromptText.gameObject.SetActive(true);
+        if (startPromptText != null)
+        {
+            startPromptText.gameObject.SetActive(true);
+            Debug.Log("[DEBUG] 'StartPromptText' 활성화 시도.");
+        }
+
         if (countdownText != null) countdownText.gameObject.SetActive(false);
+        if (aimImageObject != null) aimImageObject.SetActive(false);
+        if (roundSuccessText != null) roundSuccessText.gameObject.SetActive(false);
+        if (nextRoundPromptText != null) nextRoundPromptText.gameObject.SetActive(false);
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+        Debug.Log("[DEBUG] GameManager: Start() 함수 *종료*.");
     }
 
     void Update()
     {
-        // [수정] 게임이 시작되지 않았고(false), 스페이스바를 누르면
-        if (!isGameStarted && Input.GetKeyDown(KeyCode.Space))
+        if (!isGameStarted && !isCountingDown && Input.GetKeyDown(KeyCode.Space))
         {
-            isGameStarted = true; // 중복 입력을 막기 위해 즉시 true로 변경
-            StartCoroutine(StartGameCountdown()); // 카운트다운 시작!
+            Debug.Log("[DEBUG] 스페이스바 입력 감지!");
+            isCountingDown = true;
+            StartCoroutine(StartGameCountdown());
         }
 
-        // [수정] 게임이 시작된 후 (true) N키가 작동
-        if (isGameStarted && currentRound > 0 && Input.GetKeyDown(KeyCode.N))
+        // (waitingForNextRoundInput 변수를 사용)
+        if (isGameStarted && waitingForNextRoundInput && Input.GetKeyDown(KeyCode.Return))
         {
+            Debug.Log("[DEBUG] 엔터 키 입력 감지!");
             GoToNextRound();
         }
     }
 
-    // --- [삭제] ---
-    // public void StartFirstRound() { ... } // 버튼 함수 삭제
-    // --- [삭제 끝] ---
-
-    // --- [새 함수] 스페이스바를 누르면 호출되는 카운트다운 코루틴 ---
     IEnumerator StartGameCountdown()
     {
-        Debug.Log("카운트다운 시작!");
+        Debug.Log("[DEBUG] 카운트다운 코루틴 시작!");
 
-        // 1. "Press Space" 텍스트 숨기기
         if (startPromptText != null) startPromptText.gameObject.SetActive(false);
-
-        // 2. 카운트다운 텍스트 보이기
         if (countdownText != null) countdownText.gameObject.SetActive(true);
 
-        // 3. 카운트다운
-        countdownText.text = "3";
-        yield return new WaitForSeconds(1f); // 1초 대기
+        countdownText.text = "3"; yield return new WaitForSeconds(1f);
+        countdownText.text = "2"; yield return new WaitForSeconds(1f);
+        countdownText.text = "1"; yield return new WaitForSeconds(1f);
+        countdownText.text = "START!"; yield return new WaitForSeconds(0.5f);
 
-        countdownText.text = "2";
-        yield return new WaitForSeconds(1f); // 1초 대기
-
-        countdownText.text = "1";
-        yield return new WaitForSeconds(1f); // 1초 대기
-
-        countdownText.text = "START!";
-        yield return new WaitForSeconds(0.5f); // 0.5초 대기
-
-        // 4. 카운트다운 텍스트 숨기기
         if (countdownText != null) countdownText.gameObject.SetActive(false);
 
-        // 5. [중요] 1 라운드 시작
+        isGameStarted = true;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        if (aimImageObject != null) aimImageObject.SetActive(true);
+
+        Debug.Log("[DEBUG] 1 라운드 시작을 위해 GoToNextRound() 호출...");
         GoToNextRound();
     }
-    // --- [새 함수 끝] ---
 
     public void MonsterReachedGoal(Enemy monster, int damageToLives)
     {
@@ -112,32 +125,73 @@ public class GameManager : MonoBehaviour
         if (totalLives <= 0) GameOver();
     }
 
+    public void WaveCleared()
+    {
+        Debug.Log("[DEBUG] GameManager: 웨이브 클리어! 엔터 키 대기 상태로 전환.");
+
+        if (roundSuccessText != null)
+        {
+            roundSuccessText.gameObject.SetActive(true);
+            StartCoroutine(HideTextAfterDelay(roundSuccessText, 2f));
+        }
+
+        if (nextRoundPromptText != null)
+        {
+            nextRoundPromptText.gameObject.SetActive(true);
+        }
+
+        // (waitingForNextRoundInput 변수를 사용)
+        waitingForNextRoundInput = true;
+    }
+
+    // --- [수정] 코루틴(IEnumerator) 오류 수정 ---
+    IEnumerator HideTextAfterDelay(TextMeshProUGUI textElement, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (textElement != null)
+        {
+            textElement.gameObject.SetActive(false);
+        }
+        yield break; // (CS0161 오류 방지를 위해 명시적으로 코루틴 종료)
+    }
+    // --- [수정 끝] ---
+
     public void GoToNextRound()
     {
-        currentRound++; // (0 -> 1 또는 1 -> 2)
+        // (waitingForNextRoundInput 변수를 사용)
+        waitingForNextRoundInput = false;
+        if (nextRoundPromptText != null) nextRoundPromptText.gameObject.SetActive(false);
+
+        currentRound++;
         UpdateUI();
 
-        Debug.Log("--- 라운드 " + currentRound + " 시작 ---");
+        Debug.Log("--- [라운드 " + currentRound + "] ---");
 
-        if (MapGenerator.Instance != null)
+        if (MapGenerator.Instance == null || EnemySpawner.Instance == null)
+        {
+            Debug.LogError("GoToNextRound 실패: MapGenerator 또는 EnemySpawner가 없습니다!");
+            return;
+        }
+
+        if (currentRound > 1)
         {
             MapGenerator.Instance.GoToNextRound();
-            MapGenerator.Instance.ResetPlayerPosition();
         }
 
-        if (EnemySpawner.Instance != null)
-        {
-            EnemySpawner.Instance.StartSpawning(currentRound);
-        }
-        else
-        {
-            Debug.LogError("GameManager: 씬에 'EnemySpawner' 오브젝트가 없습니다!");
-        }
+        MapGenerator.Instance.ResetPlayerPosition();
+
+        int monstersToSpawnThisRound = (currentRound == 1) ? 10 : (5 + (currentRound * 2));
+
+        EnemySpawner.Instance.StartSpawning(currentRound, monstersToSpawnThisRound);
+
+        Debug.Log("GoToNextRound: 모든 함수 호출 완료.");
     }
 
     void GameOver()
     {
         Debug.LogError("--- 게임 오버! ---");
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
@@ -145,12 +199,16 @@ public class GameManager : MonoBehaviour
     {
         if (roundText != null)
         {
-            roundText.text = "Round: " + currentRound;
+            if (currentRound == 0)
+            {
+                roundText.gameObject.SetActive(false);
+            }
+            else
+            {
+                roundText.gameObject.SetActive(true);
+                roundText.text = "Round: " + currentRound;
+            }
         }
-
-        if (livesText != null)
-        {
-            livesText.text = "Lives: " + totalLives;
-        }
+        if (livesText != null) livesText.text = "Lives: " + totalLives;
     }
 }

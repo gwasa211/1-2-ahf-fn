@@ -10,73 +10,110 @@ public class EnemySpawner : MonoBehaviour
     public GameObject[] monsterPrefabs;
     public float timeBetweenSpawns = 2f;
 
-    private int monstersToSpawn = 5;
+    // --- [새 기능 추가] ---
+    private List<Enemy> activeEnemies = new List<Enemy>(); // 현재 살아있는 몬스터 리스트
+    private bool isWaveActive = false; // 현재 웨이브 진행 중인지 여부
+                                       // --- [추가 끝] ---
 
     void Awake()
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
 
-        // --- [디버깅 1] ---
-        Debug.Log("EnemySpawner: Awake() 실행! (씬에 스포너가 존재합니다)");
-        // --- [디버깅 끝] ---
+        Debug.Log("EnemySpawner: Awake() 실행!");
     }
 
-    // GameManager가 "N키"를 누르면 이 함수를 호출
-    public void StartSpawning(int roundNumber)
+    // [수정] 스폰할 몬스터 수를 매개변수로 받음
+    public void StartSpawning(int roundNumber, int numberOfMonsters)
     {
-        // --- [디버깅 2] ---
-        Debug.Log("EnemySpawner: StartSpawning() 호출됨! (GameManager가 N키로 명령을 내렸습니다)");
-        // --- [디버깅 끝] ---
-
-        monstersToSpawn = 5 + (roundNumber * 2);
-        StartCoroutine(SpawnWave());
+        if (isWaveActive)
+        {
+            Debug.LogWarning("EnemySpawner: 이미 웨이브가 진행 중입니다!");
+            return;
+        }
+        StartCoroutine(SpawnWave(numberOfMonsters));
     }
 
-    IEnumerator SpawnWave()
+    // [수정] 스폰할 몬스터 수를 매개변수로 받음
+    IEnumerator SpawnWave(int monstersToSpawn)
     {
-        // --- [디버깅 3] ---
-        Debug.Log("EnemySpawner: SpawnWave() 코루틴 시작!");
-        // --- [디버깅 끝] ---
+        Debug.Log("EnemySpawner: SpawnWave() 코루틴 시작! 총 " + monstersToSpawn + "마리 스폰 예정.");
+        isWaveActive = true; // 웨이브 시작!
+        activeEnemies.Clear(); // 이전 라운드 찌꺼기 제거
 
-        // --- [디버깅 4: 가장 흔한 오류 1] 몬스터 프리팹 연결 확인 ---
         if (monsterPrefabs.Length == 0 || monsterPrefabs[0] == null)
         {
-            Debug.LogError("EnemySpawner: 'Monster Prefabs' 배열이 비어있거나 0번 프리팹이 비어있습니다! (인스펙터에서 몬스터 프리팹을 연결하세요!)");
-            yield break; // 스폰 중단
+            Debug.LogError("EnemySpawner: 'Monster Prefabs' 배열이 비어있습니다!");
+            isWaveActive = false; // 웨이브 실패
+            yield break;
         }
-        // --- [디버깅 끝] ---
 
-        // MapGenerator로부터 '스폰 위치 리스트'를 가져옴
         List<Vector3> spawnList = MapGenerator.Instance.enemySpawnPositions;
 
-        // --- [디버깅 5: 가장 흔한 오류 2] 스폰 위치 개수 확인 ---
         if (spawnList.Count == 0)
         {
-            Debug.LogError("EnemySpawner: MapGenerator에 등록된 스폰 위치(1)가 없습니다! (mapData에 '1'이 있는지, MapGenerator.cs의 switch문이 맞는지 확인!)");
-            yield break; // 스폰 중단
+            Debug.LogError("EnemySpawner: MapGenerator에 등록된 스폰 위치(1)가 없습니다!");
+            isWaveActive = false; // 웨이브 실패
+            yield break;
         }
         else
         {
-            Debug.Log("EnemySpawner: " + spawnList.Count + "개의 스폰 위치를 MapGenerator로부터 받았습니다.");
+            Debug.Log("EnemySpawner: " + spawnList.Count + "개의 스폰 위치 확인.");
         }
-        // --- [디버깅 끝] ---
 
-        Debug.Log("EnemySpawner: 스폰 루프 시작! 총 " + monstersToSpawn + "마리 스폰 예정. (2초 간격)");
+        Debug.Log("EnemySpawner: 스폰 루프 시작. (2초 간격)");
         for (int i = 0; i < monstersToSpawn; i++)
         {
             Vector3 randomSpawnPos = spawnList[Random.Range(0, spawnList.Count)];
-            GameObject monsterToSpawn = monsterPrefabs[0];
+            GameObject monsterToSpawnPrefab = monsterPrefabs[0];
 
-            // --- [디버깅 6] ---
-            Debug.Log("EnemySpawner: " + (i + 1) + "번째 몬스터 스폰 시도... (위치: " + randomSpawnPos + ")");
-            // --- [디버깅 끝] ---
+            GameObject newMonsterObject = Instantiate(monsterToSpawnPrefab, randomSpawnPos, Quaternion.identity);
+            Enemy newEnemy = newMonsterObject.GetComponent<Enemy>(); // 스폰된 몬스터의 Enemy 스크립트 가져오기
 
-            Instantiate(monsterToSpawn, randomSpawnPos, Quaternion.identity);
+            if (newEnemy != null)
+            {
+                activeEnemies.Add(newEnemy); // 살아있는 몬스터 리스트에 추가
+            }
+            else
+            {
+                Debug.LogError("EnemySpawner: 스폰된 몬스터 프리팹에 Enemy 스크립트가 없습니다!");
+            }
 
             yield return new WaitForSeconds(timeBetweenSpawns);
         }
 
-        Debug.Log("EnemySpawner: 몬스터 스폰 웨이브 종료.");
+        Debug.Log("EnemySpawner: 몬스터 스폰 루프 종료. (" + activeEnemies.Count + "마리 생성됨)");
+        // 웨이브 종료 시점은 몬스터가 다 죽었을 때이므로 isWaveActive는 여기서 false로 바꾸지 않음
     }
+
+    // --- [새 함수] Enemy.cs가 Die()할 때 이 함수를 호출 ---
+    public void EnemyDied(Enemy deadEnemy)
+    {
+        if (activeEnemies.Contains(deadEnemy))
+        {
+            activeEnemies.Remove(deadEnemy); // 리스트에서 제거
+            Debug.Log("EnemySpawner: 적 사망 처리. 남은 적: " + activeEnemies.Count);
+
+            // 모든 적이 제거되었고, 웨이브가 아직 끝나지 않았다면
+            if (activeEnemies.Count == 0 && isWaveActive)
+            {
+                WaveCleared();
+            }
+        }
+    }
+    // --- [새 함수 끝] ---
+
+    // --- [새 함수] 모든 적이 죽었을 때 호출됨 ---
+    void WaveCleared()
+    {
+        Debug.Log("EnemySpawner: 웨이브 클리어!");
+        isWaveActive = false; // 웨이브 종료!
+
+        // GameManager에게 웨이브 클리어 신호 보내기
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.WaveCleared();
+        }
+    }
+    // --- [새 함수 끝] ---
 }
