@@ -14,32 +14,36 @@ public class MapGenerator : MonoBehaviour
     private List<Vector2Int> availableFloorTiles = new List<Vector2Int>();
 
     [Header("Spawn Points")]
+    // EnemySpawner가 가져다 쓸 스폰 위치 리스트 (case 1에서 채워짐)
     public List<Vector3> enemySpawnPositions = new List<Vector3>();
 
     [Header("Map Blueprint (Data)")]
-    // 0 = 설치 발판
-    // 1 = 벽
-    // 2 = 몬스터 스폰
-    // 3 = 플레이어 스폰
-    // 4 = 골
+    // 0 = 설치 발판 (floorPrefab)
+    // 1 = 몬스터 스폰 (enemySpawnPrefab)
+    // 2 = 벽 (wallPrefab)
+    // 3 = 플레이어 스폰 (floorPrefab + 플레이어 이동)
+    // 4 = 골 (goalPrefab)
+
+    // --- [사용자님이 주신 맵 설계도 100% 반영] ---
     private int[,] mapData = new int[8, 11]
     { // x= 0  1  2  3  4  5  6  7  8  9 10
-        { 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }, // y=0 (벽 '1')
-        { 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }, // y=1 (벽 '1')
-        { 4, 0, 0, 2, 2, 2, 2, 2, 2, 2, 1 }, // y=2 (몬스터 스폰 '2')
-        { 4, 3, 0, 0, 0, 0, 0, 0, 0, 0, 1 }, // y=3 (플레이어 스폰 '3')
-        { 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }, // y=4
-        { 4, 0, 0, 2, 2, 2, 2, 2, 2, 2, 1 }, // y=5 (몬스터 스폰 '2')
-        { 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }, // y=6
-        { 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }  // y=7 (벽 '1')
+        { 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }, // y=0 (몬스터 스폰 '1')
+        { 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }, // y=1 (몬스터 스폰 '1')
+        { 4, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2 }, // y=2 (벽 '2')
+        { 4, 3, 0, 0, 0, 0, 0, 0, 0, 0, 1 }, // y=3 (몬스터 스폰 '1')
+        { 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }, // y=4 (몬스터 스폰 '1')
+        { 4, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2 }, // y=5 (벽 '2')
+        { 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }, // y=6 (몬스터 스폰 '1')
+        { 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }  // y=7 (몬스터 스폰 '1')
     };
+    // --- [맵 설계도 끝] ---
 
     [Header("Prefabs (Blocks)")]
-    public GameObject floorPrefab;
-    public GameObject wallPrefab;
-    public GameObject enemySpawnPrefab;
-    public GameObject goalPrefab;
-    public GameObject unbuildableFloorPrefab;
+    public GameObject floorPrefab;          // 0, 3번이 사용
+    public GameObject wallPrefab;           // 2번이 사용 (벽)
+    public GameObject enemySpawnPrefab;     // 1번이 사용 (몬스터 스폰)
+    public GameObject goalPrefab;           // 4번이 사용
+    public GameObject unbuildableFloorPrefab; // 라운드 변경 시 사용
 
     [Header("Player")]
     public GameObject player;
@@ -72,10 +76,11 @@ public class MapGenerator : MonoBehaviour
                 Vector3 spawnPosition = position;
                 bool isFloor = false;
 
+                // --- [1=스폰, 2=벽 규칙에 맞는 switch문] ---
                 switch (tileType)
                 {
-                    case 0:
-                    case 3:
+                    case 0: // 0 = 설치 발판
+                    case 3: // 3 = 플레이어 스폰 (발판)
                         prefabToSpawn = floorPrefab;
                         tileGrid[y, x] = TileState.Buildable;
                         availableFloorTiles.Add(new Vector2Int(x, y));
@@ -87,23 +92,30 @@ public class MapGenerator : MonoBehaviour
                         }
                         break;
 
-                    case 1: // 1 = 벽
-                        tileGrid[y, x] = TileState.NotAFloor;
-                        prefabToSpawn = wallPrefab;
-                        break;
-
-                    case 2: // 2 = 몬스터 스폰
+                    case 1: // 1 = [역할] -> 몬스터 스폰 (Enemy Spawn)
                         tileGrid[y, x] = TileState.NotAFloor;
                         prefabToSpawn = enemySpawnPrefab;
-                        Instantiate(floorPrefab, position, Quaternion.identity, this.transform);
+
+                        // [수정] 겹침 버그: 스폰 위치에 바닥을 생성하던 코드 [삭제]
+
+                        // [중요] 이 위치를 '스폰 위치 리스트'에 저장
                         enemySpawnPositions.Add(spawnPosition);
                         break;
 
-                    case 4: // 4 = 골
+                    case 2: // 2 = [역할] -> 벽 (Wall)
+                        tileGrid[y, x] = TileState.NotAFloor;
+                        prefabToSpawn = wallPrefab;
+
+                        // [수정] 겹침 버그: 벽 위치에 바닥을 생성하던 코드 [삭제]
+
+                        break;
+
+                    case 4: // 4 = 골 (Goal)
                         tileGrid[y, x] = TileState.NotAFloor;
                         prefabToSpawn = goalPrefab;
                         break;
                 }
+                // --- [switch 끝] ---
 
                 if (prefabToSpawn != null)
                 {
@@ -116,6 +128,8 @@ public class MapGenerator : MonoBehaviour
             }
         }
     }
+
+    // (이하 GoToNextRound, ResetPlayerPosition 등 모든 함수는 변경 없습니다)
 
     public void GoToNextRound()
     {
@@ -178,29 +192,23 @@ public class MapGenerator : MonoBehaviour
         }
     }
 
-    // --- [오류 수정 1: WorldToGrid] ---
-    // 이 함수는 '반드시' Vector2Int를 반환(return)해야 합니다.
     public Vector2Int WorldToGrid(Vector3 worldPos)
     {
         int x = Mathf.RoundToInt(worldPos.x / tileSize);
         int y = Mathf.RoundToInt(worldPos.z / tileSize);
-        return new Vector2Int(x, y); // 이 return 문이 항상 실행됩니다.
+        return new Vector2Int(x, y);
     }
 
-    // --- [오류 수정 2: GetTileStateAtWorld] ---
-    // 이 함수는 '반드시' TileState를 반환(return)해야 합니다.
     public TileState GetTileStateAtWorld(Vector3 worldPos)
     {
         Vector2Int gridPos = WorldToGrid(worldPos);
 
-        // 1번 경로: 맵 범위를 벗어난 경우
         if (gridPos.y < 0 || gridPos.y >= tileGrid.GetLength(0) ||
             gridPos.x < 0 || gridPos.x >= tileGrid.GetLength(1))
         {
-            return TileState.NotAFloor; // 여기서 반환
+            return TileState.NotAFloor;
         }
 
-        // 2번 경로: 맵 범위 안인 경우 (if문을 통과한 경우)
-        return tileGrid[gridPos.y, gridPos.x]; // 여기서 '반드시' 반환
+        return tileGrid[gridPos.y, gridPos.x];
     }
 }
