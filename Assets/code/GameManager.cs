@@ -9,10 +9,6 @@ public class GameManager : MonoBehaviour
     public int totalLives = 20;
     public int currentRound = 1;
 
-    // --- [삭제] ---
-    // (EnemySpawner 연결 변수 삭제)
-    // --- [삭제 끝] ---
-
     void Awake()
     {
         if (Instance == null)
@@ -31,8 +27,6 @@ public class GameManager : MonoBehaviour
     {
         Debug.Log("--- 게임 매니저 시작 ---");
         Debug.Log("현재 목숨: " + totalLives + " | 현재 라운드: " + currentRound);
-
-        // [삭제] 스포너 연결 확인 코드 삭제
     }
 
     void Update()
@@ -59,11 +53,16 @@ public class GameManager : MonoBehaviour
 
         if (MapGenerator.Instance != null)
         {
+            // 1. 맵 생성기에게 타일 업데이트 명령
             MapGenerator.Instance.GoToNextRound();
+
+            // --- [새 기능 추가] ---
+            // 2. 맵 생성기에게 플레이어 위치 리셋 명령
+            MapGenerator.Instance.ResetPlayerPosition();
+            // --- [추가 끝] ---
         }
 
-        // --- [수정] ---
-        // 3. 인스펙터 연결 대신, 싱글톤 인스턴스를 바로 호출!
+        // 3. 스포너에게 몬스터 생성 명령
         if (EnemySpawner.Instance != null)
         {
             EnemySpawner.Instance.StartSpawning(currentRound);
@@ -72,7 +71,6 @@ public class GameManager : MonoBehaviour
         {
             Debug.LogError("GameManager: 씬에 'EnemySpawner' 오브젝트가 없습니다!");
         }
-        // --- [수정 끝] ---
     }
 
     void GameOver()
