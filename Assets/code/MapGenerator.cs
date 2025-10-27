@@ -1,20 +1,19 @@
 using UnityEngine;
 using System.Collections.Generic;
+// using UnityEngine.AI; // [삭제]
 
+// [삭제] [RequireComponent(typeof(NavMeshSurface))] 
 public class MapGenerator : MonoBehaviour
 {
     public static MapGenerator Instance;
+    // [삭제] private NavMeshSurface navMeshSurface; 
 
     [Header("Map Settings")]
     public float tileSize = 0.11f;
 
     public enum TileState { Buildable, Unbuildable, NotAFloor }
     private TileState[,] tileGrid;
-
     private GameObject[,] floorTileObjects;
-
-    [Header("Round Management")]
-    public int currentRound = 1;
     private List<Vector2Int> availableFloorTiles = new List<Vector2Int>();
 
     [Header("Map Blueprint (Data)")]
@@ -45,17 +44,14 @@ public class MapGenerator : MonoBehaviour
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
 
+        // [삭제] navMeshSurface = GetComponent<NavMeshSurface>();
+
         GenerateMap();
+
+        // [삭제] BuildNavMesh();
     }
 
-    void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.N))
-        {
-            GoToNextRound();
-        }
-    }
-
+    // (GenerateMap 함수는 변경 없음)
     void GenerateMap()
     {
         int numRows = mapData.GetLength(0);
@@ -69,13 +65,9 @@ public class MapGenerator : MonoBehaviour
         {
             for (int x = 0; x < numCols; x++)
             {
-                // 기본 Y축 위치 0.01f
                 Vector3 position = new Vector3(x * tileSize, 0.01f, y * tileSize);
-
                 int tileType = mapData[y, x];
                 GameObject prefabToSpawn = null;
-
-                // [수정] spawnPosition 변수가 position을 그대로 사용 (Y=0.01f 고정)
                 Vector3 spawnPosition = position;
                 bool isFloor = false;
 
@@ -92,12 +84,10 @@ public class MapGenerator : MonoBehaviour
                         {
                             CharacterController cc = player.GetComponent<CharacterController>();
                             if (cc != null) cc.enabled = false;
-                            // 플레이어 Y는 1f로 유지 (타일 높이와 무관)
                             player.transform.position = new Vector3(x * tileSize, 1f, y * tileSize);
                             if (cc != null) cc.enabled = true;
                         }
                         break;
-
                     case 1:
                         tileGrid[y, x] = TileState.NotAFloor;
                         prefabToSpawn = enemySpawnPrefab;
@@ -106,12 +96,6 @@ public class MapGenerator : MonoBehaviour
                     case 2:
                         tileGrid[y, x] = TileState.NotAFloor;
                         prefabToSpawn = wallPrefab;
-
-                        // --- [수정] ---
-                        // 벽의 중심 높이 계산 삭제. (Y=0.01f)
-                        // (벽 프리팹의 Pivot이 바닥에 있어야 함)
-                        // spawnPosition.y = 0.01f + (tileSize / 2f); // [삭제]
-                        // --- [수정 끝] ---
                         break;
                     case 4:
                         tileGrid[y, x] = TileState.NotAFloor;
@@ -121,7 +105,6 @@ public class MapGenerator : MonoBehaviour
 
                 if (prefabToSpawn != null)
                 {
-                    // [중요] spawnPosition.y는 항상 0.01f
                     GameObject newInstance = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity, this.transform);
                     if (isFloor)
                     {
@@ -139,15 +122,13 @@ public class MapGenerator : MonoBehaviour
     // (GoToNextRound 함수는 변경 없음)
     public void GoToNextRound()
     {
-        currentRound++;
-        Debug.Log("--- 라운드 " + currentRound + " 시작 ---");
+        Debug.Log("MapGenerator: 설치 불가 타일을 업데이트합니다.");
 
         int tilesToDisable = Random.Range(3, 5);
 
         for (int i = 0; i < tilesToDisable; i++)
         {
             if (availableFloorTiles.Count == 0) break;
-
             int randomIndex = Random.Range(0, availableFloorTiles.Count);
             Vector2Int tileCoords = availableFloorTiles[randomIndex];
 
@@ -158,7 +139,7 @@ public class MapGenerator : MonoBehaviour
 
             if (oldTile != null && unbuildableFloorPrefab != null)
             {
-                Vector3 position = oldTile.transform.position; // (Y=0.01f)
+                Vector3 position = oldTile.transform.position;
                 Quaternion rotation = oldTile.transform.rotation;
                 Transform parent = oldTile.transform.parent;
 
@@ -167,10 +148,11 @@ public class MapGenerator : MonoBehaviour
                 GameObject newTile = Instantiate(unbuildableFloorPrefab, position, rotation, parent);
                 floorTileObjects[tileCoords.y, tileCoords.x] = newTile;
             }
-
             Debug.Log("타일 (" + tileCoords.x + ", " + tileCoords.y + ") 설치 불가로 변경됨.");
         }
     }
+
+    // [삭제] void BuildNavMesh() { ... }
 
     // (WorldToGrid 와 GetTileStateAtWorld 함수는 변경 없음)
     public Vector2Int WorldToGrid(Vector3 worldPos)
