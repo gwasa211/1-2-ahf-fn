@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
 using System.Collections;
-using UnityEngine.UI; // 조준선 (Image)
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
@@ -15,10 +15,10 @@ public class GameManager : MonoBehaviour
     [HideInInspector]
     public bool isGameStarted = false;
     private bool isCountingDown = false;
-
-    // --- [수정] 이 변수가 빠져있었습니다! (클래스 레벨에 추가) ---
     private bool waitingForNextRoundInput = false;
-    // --- [수정 끝] ---
+
+    [HideInInspector]
+    public bool isGameOver = false;
 
     [Header("UI (Links)")]
     public TextMeshProUGUI roundText;
@@ -26,15 +26,22 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI startPromptText;
     public TextMeshProUGUI countdownText;
     public GameObject aimImageObject;
-    public TextMeshProUGUI roundSuccessText;
     public TextMeshProUGUI nextRoundPromptText;
+    public TextMeshProUGUI remainingMonstersText;
 
+    [Header("Monster Count")]
+    private int baseMonsterCount = 10;
+    private int monsterIncrement = 5;
+    private int totalMonstersThisRound = 0;
+    private int remainingMonsters = 0;
+
+    // --- [수정] DontDestroyOnLoad 삭제 ---
     void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+            // DontDestroyOnLoad(gameObject); // [수정] 이 줄을 삭제하거나 주석 처리!
             Debug.Log("[DEBUG] GameManager: Awake() 실행. Instance 설정 완료.");
         }
         else
@@ -43,59 +50,81 @@ public class GameManager : MonoBehaviour
             return;
         }
     }
+    // --- [수정 끝] ---
 
     void Start()
     {
-        Debug.Log("[DEBUG] GameManager: Start() 함수 *시작*.");
+        Debug.Log("[DEBUG] GameManager: Start() 함수 *시작*. (Round 0 대기 상태)");
 
-        if (roundText == null || livesText == null || startPromptText == null || countdownText == null || aimImageObject == null || roundSuccessText == null || nextRoundPromptText == null)
-        {
-            Debug.LogError("GameManager: UI 링크 중 하나가 비어있습니다!");
-        }
+        if (roundText == null || livesText == null || startPromptText == null || countdownText == null || aimImageObject == null || nextRoundPromptText == null || remainingMonstersText == null)
+        { Debug.LogError("GameManager: UI 링크 중 하나가 비어있습니다!"); }
 
         isGameStarted = false;
         isCountingDown = false;
-        waitingForNextRoundInput = false; // (변수 초기화)
+        waitingForNextRoundInput = false;
+        isGameOver = false;
 
         UpdateUI();
+        UpdateRemainingMonstersUI();
 
         if (startPromptText != null)
         {
+            startPromptText.text = "Press Spacebar to Start";
             startPromptText.gameObject.SetActive(true);
-            Debug.Log("[DEBUG] 'StartPromptText' 활성화 시도.");
         }
-
         if (countdownText != null) countdownText.gameObject.SetActive(false);
-        if (aimImageObject != null) aimImageObject.SetActive(false);
-        if (roundSuccessText != null) roundSuccessText.gameObject.SetActive(false);
+        if (aimImageObject != null) aimImageObject.gameObject.SetActive(false);
         if (nextRoundPromptText != null) nextRoundPromptText.gameObject.SetActive(false);
+        if (remainingMonstersText != null) remainingMonstersText.gameObject.SetActive(false);
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        Debug.Log("[DEBUG] GameManager: Start() 함수 *종료*.");
     }
 
     void Update()
     {
+        if (isGameOver)
+        {
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                Debug.Log("Game Over: 스페이스바 입력! 씬 재시작.");
+                SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            }
+            if (Input.GetKeyDown(KeyCode.Return))
+            {
+                Debug.Log("Game Over: 엔터 입력! 게임 종료.");
+                Application.Quit();
+#if UNITY_EDITOR
+                UnityEditor.EditorApplication.isPlaying = false;
+#endif
+            }
+            return;
+        }
+
         if (!isGameStarted && !isCountingDown && Input.GetKeyDown(KeyCode.Space))
         {
-            Debug.Log("[DEBUG] 스페이스바 입력 감지!");
             isCountingDown = true;
             StartCoroutine(StartGameCountdown());
         }
 
-        // (waitingForNextRoundInput 변수를 사용)
         if (isGameStarted && waitingForNextRoundInput && Input.GetKeyDown(KeyCode.Return))
         {
-            Debug.Log("[DEBUG] 엔터 키 입력 감지!");
             GoToNextRound();
+        }
+
+        if (isGameStarted && !waitingForNextRoundInput && Input.GetKeyDown(KeyCode.N))
+        {
+            Enemy[] currentEnemies = FindObjectsOfType<Enemy>();
+            foreach (Enemy enemy in currentEnemies)
+            {
+                Destroy(enemy.gameObject);
+            }
+            WaveCleared();
         }
     }
 
     IEnumerator StartGameCountdown()
     {
-        Debug.Log("[DEBUG] 카운트다운 코루틴 시작!");
-
         if (startPromptText != null) startPromptText.gameObject.SetActive(false);
         if (countdownText != null) countdownText.gameObject.SetActive(true);
 
@@ -107,65 +136,77 @@ public class GameManager : MonoBehaviour
         if (countdownText != null) countdownText.gameObject.SetActive(false);
 
         isGameStarted = true;
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         if (aimImageObject != null) aimImageObject.SetActive(true);
 
-        Debug.Log("[DEBUG] 1 라운드 시작을 위해 GoToNextRound() 호출...");
         GoToNextRound();
+
+        yield break;
     }
 
     public void MonsterReachedGoal(Enemy monster, int damageToLives)
     {
+        OnMonsterRemoved();
+
         if (monster != null) Destroy(monster.gameObject);
+
         totalLives -= damageToLives;
         UpdateUI();
 
-        Debug.Log("몬스터가 골에 도달! 목숨 -" + damageToLives + " | 남은 목숨: " + totalLives);
-        if (totalLives <= 0) GameOver();
+        if (totalLives <= 0 && !isGameOver)
+        {
+            GameOver();
+        }
+    }
+
+    public void OnMonsterRemoved()
+    {
+        if (!isGameStarted || remainingMonsters <= 0) return;
+
+        remainingMonsters--;
+        UpdateRemainingMonstersUI();
+
+        if (remainingMonsters <= 0 && !waitingForNextRoundInput)
+        {
+            WaveCleared();
+        }
     }
 
     public void WaveCleared()
     {
-        Debug.Log("[DEBUG] GameManager: 웨이브 클리어! 엔터 키 대기 상태로 전환.");
-
-        if (roundSuccessText != null)
+        if (EnemySpawner.Instance != null)
         {
-            roundSuccessText.gameObject.SetActive(true);
-            StartCoroutine(HideTextAfterDelay(roundSuccessText, 2f));
+            EnemySpawner.Instance.WaveCleared();
         }
 
         if (nextRoundPromptText != null)
         {
+            nextRoundPromptText.text = "Round Success!";
             nextRoundPromptText.gameObject.SetActive(true);
+            StartCoroutine(ChangeTextAfterDelay(nextRoundPromptText, "Press Enter for Next Round", 2f));
         }
-
-        // (waitingForNextRoundInput 변수를 사용)
         waitingForNextRoundInput = true;
     }
 
-    // --- [수정] 코루틴(IEnumerator) 오류 수정 ---
-    IEnumerator HideTextAfterDelay(TextMeshProUGUI textElement, float delay)
+    IEnumerator ChangeTextAfterDelay(TextMeshProUGUI textElement, string newText, float delay)
     {
         yield return new WaitForSeconds(delay);
-        if (textElement != null)
+        if (textElement != null && waitingForNextRoundInput)
         {
-            textElement.gameObject.SetActive(false);
+            textElement.text = newText;
         }
-        yield break; // (CS0161 오류 방지를 위해 명시적으로 코루틴 종료)
+        yield break;
     }
-    // --- [수정 끝] ---
 
     public void GoToNextRound()
     {
-        // (waitingForNextRoundInput 변수를 사용)
         waitingForNextRoundInput = false;
         if (nextRoundPromptText != null) nextRoundPromptText.gameObject.SetActive(false);
 
         currentRound++;
         UpdateUI();
-
-        Debug.Log("--- [라운드 " + currentRound + "] ---");
 
         if (MapGenerator.Instance == null || EnemySpawner.Instance == null)
         {
@@ -180,19 +221,47 @@ public class GameManager : MonoBehaviour
 
         MapGenerator.Instance.ResetPlayerPosition();
 
-        int monstersToSpawnThisRound = (currentRound == 1) ? 10 : (5 + (currentRound * 2));
+        totalMonstersThisRound = baseMonsterCount + (currentRound - 1) * monsterIncrement;
+        remainingMonsters = totalMonstersThisRound;
+        UpdateRemainingMonstersUI();
+        if (remainingMonstersText != null) remainingMonstersText.gameObject.SetActive(true);
 
-        EnemySpawner.Instance.StartSpawning(currentRound, monstersToSpawnThisRound);
-
-        Debug.Log("GoToNextRound: 모든 함수 호출 완료.");
+        EnemySpawner.Instance.StartSpawning(currentRound, totalMonstersThisRound);
     }
 
     void GameOver()
     {
         Debug.LogError("--- 게임 오버! ---");
+        isGameOver = true;
+        isGameStarted = false;
+
+        if (EnemySpawner.Instance != null)
+        {
+            EnemySpawner.Instance.StopAllSpawning();
+        }
+
+        Enemy[] allEnemies = FindObjectsOfType<Enemy>();
+        Debug.Log("[DEBUG] GameOver: " + allEnemies.Length + "마리의 몬스터를 즉시 제거합니다.");
+        foreach (Enemy enemy in allEnemies)
+        {
+            Destroy(enemy.gameObject);
+        }
+
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+
+        if (roundText != null) roundText.gameObject.SetActive(false);
+        if (livesText != null) livesText.gameObject.SetActive(false);
+        if (countdownText != null) countdownText.gameObject.SetActive(false);
+        if (aimImageObject != null) aimImageObject.gameObject.SetActive(false);
+        if (nextRoundPromptText != null) nextRoundPromptText.gameObject.SetActive(false);
+        if (remainingMonstersText != null) remainingMonstersText.gameObject.SetActive(false);
+
+        if (startPromptText != null)
+        {
+            startPromptText.text = "GAME OVER\n<size=60%>Spacebar: Restart / Enter: Quit</size>";
+            startPromptText.gameObject.SetActive(true);
+        }
     }
 
     void UpdateUI()
@@ -210,5 +279,21 @@ public class GameManager : MonoBehaviour
             }
         }
         if (livesText != null) livesText.text = "Lives: " + totalLives;
+    }
+
+    void UpdateRemainingMonstersUI()
+    {
+        if (remainingMonstersText != null)
+        {
+            if (isGameStarted && !waitingForNextRoundInput && currentRound > 0)
+            {
+                remainingMonstersText.gameObject.SetActive(true);
+                remainingMonstersText.text = "Monsters: " + remainingMonsters + "/" + totalMonstersThisRound;
+            }
+            else
+            {
+                remainingMonstersText.gameObject.SetActive(false);
+            }
+        }
     }
 }
