@@ -35,25 +35,25 @@ public class ahffn : MonoBehaviour
                 int terrainHeight = Mathf.FloorToInt(noise * maxHeight);
 
                
-                for (int y = 0; y < maxHeight; y++)
+                for (int h = 0; h < maxHeight; h++)
                 {
-                    if (y <= terrainHeight)
+                    if (h <= terrainHeight)
                     {
                        
-                        if (y == terrainHeight)
+                        if (h == terrainHeight)
                         {
                  
-                            Place(grassPrefab, x, y, z);
+                            Place(grassPrefab, x, h, z);
                         }
                         else
                         {
                     
-                            Place(dirtPrefab, x, y, z);
+                            Place(dirtPrefab, x, h, z);
                         }
                     }
-                    else if (y <= waterLevel)
+                    else if (h <= waterLevel)
                     {
-                        Place(waterPrefab, x, y, z);
+                        Place(waterPrefab, x, h, z);
                     }
                   
                 }
@@ -62,12 +62,13 @@ public class ahffn : MonoBehaviour
     }
 
    
-    private void Place(GameObject prefabToPlace, int x, int y, int z)
+    private void Place(GameObject prefabToPlace, int x, int h, int z)
     {
-        var go = Instantiate(prefabToPlace, new Vector3(x, y, z), Quaternion.identity, transform);
-        go.name = $"B_{x}_{y}_{z}";
+    
+        var go = Instantiate(blockPrefab, new Vector3(x, y, z), Quaternion.identity, transform);
+    
     }
-
+ 
     void Update()
     {
 
