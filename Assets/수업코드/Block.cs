@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum BlockType { Dirt, Grass, Water }
+public enum BlockType { None, Dirt, Grass, Water } // 'None'을 맨 앞에 추가
 public class Block : MonoBehaviour
 {
     [Header("Block Stat")]

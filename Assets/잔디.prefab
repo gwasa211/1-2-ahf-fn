@@ -11,7 +11,9 @@ GameObject:
   - component: {fileID: 6821247968368170238}
   - component: {fileID: 2481235524928946450}
   - component: {fileID: 4775932711328759469}
+  - component: {fileID: -7260252268581140888}
   - component: {fileID: -6362616861699749738}
+  - component: {fileID: -2496951956151580706}
   - component: {fileID: 7181619207015727400}
   m_Layer: 8
   m_Name: "\uC794\uB514"
@@ -29,7 +31,7 @@ Transform:
   m_GameObject: {fileID: 2177612841904618850}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.19300956, y: 3.9548073, z: 6.75}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -85,6 +87,22 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &-7260252268581140888
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2177612841904618850}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cafe8b4a49bb658448adde5bd4871061, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 100
+  healthSlider: {fileID: 0}
+  healthText: {fileID: 0}
+  healthCanvas: {fileID: 0}
 --- !u!114 &-6362616861699749738
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -97,6 +115,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a9aa6bda0da2a834f93f8d6782399a8d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  maxStack: 64
+  maxInventorySize: 7
+  inventoryUI: {fileID: 0}
+--- !u!114 &-2496951956151580706
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2177612841904618850}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 511ee36197a205046828d16b5e4ab167, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  type: 1
+  maxHP: 3
+  hp: 0
+  dropCount: 1
+  mineable: 1
 --- !u!65 &7181619207015727400
 BoxCollider:
   m_ObjectHideFlags: 0

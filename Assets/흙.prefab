@@ -9,9 +9,11 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5961448589429199281}
+  - component: {fileID: -8434079264941756458}
   - component: {fileID: 6573741532843394079}
   - component: {fileID: 5107337260020140697}
   - component: {fileID: 7004367598707257146}
+  - component: {fileID: -7389559658528299720}
   - component: {fileID: 1464660183405286916}
   m_Layer: 8
   m_Name: "\uD759"
@@ -35,6 +37,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &-8434079264941756458
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 936489203333409747}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cafe8b4a49bb658448adde5bd4871061, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 100
+  healthSlider: {fileID: 0}
+  healthText: {fileID: 0}
+  healthCanvas: {fileID: 0}
 --- !u!33 &6573741532843394079
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -97,6 +115,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a9aa6bda0da2a834f93f8d6782399a8d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  maxStack: 64
+  maxInventorySize: 7
+  inventoryUI: {fileID: 0}
+--- !u!114 &-7389559658528299720
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 936489203333409747}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 511ee36197a205046828d16b5e4ab167, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  type: 2
+  maxHP: 3
+  hp: 0
+  dropCount: 1
+  mineable: 1
 --- !u!65 &1464660183405286916
 BoxCollider:
   m_ObjectHideFlags: 0

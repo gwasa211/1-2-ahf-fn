@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerControler : MonoBehaviour
+public class PlayerControlㅣer : MonoBehaviour
 {
     public float moveSpeed = 5f;
     public float jumpPower = 5f;
@@ -13,13 +13,6 @@ public class PlayerControler : MonoBehaviour
     Transform cam;
     Vector3 velocity;
     bool isGrounded;
-
-    // --- [새로 추가된 변수] ---
-    [Header("Attack Settings")]
-    public float attackRange = 5f;  // 공격 사거리
-    public float attackDamage = 10f; // 한 번에 줄 대미지
-    // --- [추가 끝] ---
-
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
@@ -28,19 +21,18 @@ public class PlayerControler : MonoBehaviour
             cam = GetComponentInChildren<Camera>()?.transform;
         }
     }
-
+    // Start is called before the first frame update
     void Start()
     {
-
+        
     }
 
+    // Update is called once per frame
     void Update()
     {
         HandleMove();
         HandleLook();
-        HandleAttack(); // <-- [새로 추가된 함수 호출]
     }
-
     void HandleMove()
     {
         isGrounded = controller.isGrounded;
@@ -66,30 +58,9 @@ public class PlayerControler : MonoBehaviour
         xRotation = Mathf.Clamp(xRotation, -80f, 80f);
         if (cam != null)
             cam.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
+        
+
     }
 
-    // --- [새로 추가된 함수] ---
-    void HandleAttack()
-    {
-        // 마우스 왼쪽 버튼 (Fire1)을 눌렀을 때
-        if (Input.GetButtonDown("Fire1"))
-        {
-            RaycastHit hit; // 광선에 맞은 물체 정보를 담을 변수
 
-            // cam.position에서 cam.forward 방향으로 attackRange 만큼 광선을 쏨
-            if (Physics.Raycast(cam.position, cam.forward, out hit, attackRange))
-            {
-                // 광선에 맞은 물체가 StructureHealth 컴포넌트를 가지고 있는지 확인
-                StructureHealth block = hit.collider.GetComponent<StructureHealth>();
-
-                if (block != null)
-                {
-                    // 가지고 있다면, TakeDamage 함수를 호출
-                    Debug.Log("블럭 명중! 대미지: " + attackDamage);
-                    block.TakeDamage(attackDamage);
-                }
-            }
-        }
-    }
-    // --- [추가 끝] ---
 }
